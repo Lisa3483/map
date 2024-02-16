@@ -13,7 +13,7 @@ WHITE = (255, 255, 255)
 GRAY = (200, 200, 200)
 pygame.init()
 screen = pygame.display.set_mode((800, 550))
-
+marker = []
 running = True
 
 
@@ -77,17 +77,45 @@ class TextInputBox(pygame.sprite.Sprite):
         self.text = self.text[:-1]
 
 
+def new_marker(adress):
+    global ll_1
+    global ll_2
+    dic = {'format': 'json', 'q': adress, "addressdetails": 1,
+           "limit": 1}
+    url = "https://nominatim.openstreetmap.org/search"
+    s = requests.get(url, params=dic)
+    s = s.json()
+
+    if s:
+        marker.append([s[0]['lon'], s[0]['lat']])
+        ll_1 = float(s[0]['lon'])
+        ll_2 = float(s[0]['lat'])
+    else:
+        print('адресс не найден')
+
+
 def get_map():
     global ll_1
     global ll_2
     global z
     global map_api_server
     global l
+    global marker
+    u = None
+
+    if marker != []:
+        u = ''
+        for i in range(len(marker)):
+            if i != 0:
+                u += '~'
+            u += ','.join(marker[i]) + ',pmdol'
+
     map_params = {
 
         "ll": f'{ll_1},{ll_2}',
         "l": l,
-        "z": z
+        "z": z,
+        "pt": u
     }
 
     response = requests.get(map_api_server, params=map_params)
@@ -131,14 +159,15 @@ while running:
             get_map()
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if button.rect.collidepoint(event.pos):
+
                 if l == 'map':
                     l = 'sat'
                 elif l == 'sat':
-                    l == 'hybrid'
-                else:
-                    l == 'map'
+                    l = 'map'
+
             elif search_button.rect.collidepoint(event.pos):
                 search_button.search(input_box.text)
+                new_marker(input_box.text)
 
             get_map()
     button.draw(screen)
